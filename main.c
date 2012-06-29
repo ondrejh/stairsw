@@ -26,11 +26,16 @@
 //          | |                 |
 //          --|RST          XOUT|-
 //            |                 |
-//            |             P1.0|--> RED LED (active high)   |
-//            |             P1.6|--> GREEN LED (active high) | or R/G led two/w
+//            |    P1.0 (P2.3,4)|--> RED LED (active high)   |
+//            |      P1.6 (P2.5)|--> GREEN LED (active high) | or R/G led two/w
 //            |                 |
 //            |             P1.3|<-- BUTTON WITH PULLUP (active low)
 //            |                 |
+//            |           P2.1,2|--> OUT (active low)
+//            |                 |
+//
+// 2012.06.29: output port connected
+//             leds pin and output pin doubled (tripled) to get more current
 //
 //******************************************************************************
 
@@ -46,17 +51,17 @@
 
 
 // board (leds, button)
-#define LED_INIT() {P1DIR|=0x41;P1OUT&=~0x41;}
-#define LED_RED_ON() {P1OUT|=0x01;}
-#define LED_RED_OFF() {P1OUT&=~0x01;}
-#define LED_GREEN_ON() {P1OUT|=0x40;}
-#define LED_GREEN_OFF() {P1OUT&=~0x40;}
+#define LED_INIT() {P1DIR|=0x41;P1OUT&=~0x41;P2DIR|=0x38;P2OUT&=~0x38;}
+#define LED_RED_ON() {P1OUT|=0x01;P2OUT|=0x18;}
+#define LED_RED_OFF() {P1OUT&=~0x01;P2OUT&=~0x18;}
+#define LED_GREEN_ON() {P1OUT|=0x40;P2OUT|=0x20;}
+#define LED_GREEN_OFF() {P1OUT&=~0x40;P2OUT&=~0x20;}
 
 #define BTN_INIT() {P1DIR&=~0x08;P1REN|=0x08;}
 #define BTN_DOWN ((P1IN&0x08)==0)
-#define OUT_INIT()
-#define OUT_ON()
-#define OUT_OFF()
+#define OUT_INIT() {P2DIR|=0x06;P2OUT|=0x06;}
+#define OUT_ON() {P2OUT&=~0x06;}
+#define OUT_OFF() {P2OUT|=0x06;}
 
 // time base 5ms (5000 ticks / 1MHz)
 #define Timer_Const 5000
@@ -149,6 +154,7 @@ __interrupt void Timer_A (void)
 			{
 				//LED_RED_OFF();
 				//LED_GREEN_ON();
+				OUT_OFF();
 				out_st=false;
 				sw_seqv++;
 			}
