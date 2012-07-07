@@ -4,13 +4,13 @@
 	<File name=".gitignore" open="0" top="0" tabpos="0">
 		<Cursor position="36" topLine="0" />
 	</File>
-	<File name="Makefile" open="1" top="0" tabpos="2">
-		<Cursor position="1650" topLine="25" />
+	<File name="Makefile" open="1" top="1" tabpos="2">
+		<Cursor position="2694" topLine="62" />
 	</File>
 	<File name="README.md" open="1" top="0" tabpos="3">
 		<Cursor position="63" topLine="0" />
 	</File>
-	<File name="main.c" open="1" top="1" tabpos="1">
-		<Cursor position="1252" topLine="42" />
+	<File name="main.c" open="1" top="0" tabpos="1">
+		<Cursor position="2719" topLine="80" />
 	</File>
 </CodeBlocks_layout_file>

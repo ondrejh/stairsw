@@ -9,7 +9,8 @@
 # The TXT file is used for BSL loading, the ELF can be used for JTAG use
 #
 TARGET     = stairsw
-MCU        = msp430g2452
+MCU        = msp430g2553
+#MCU        = msp430g2452
 # List all the source files here
 # eg if you have a source file foo.c then list it here
 SOURCES = main.c
@@ -80,3 +81,6 @@ clean:
 	-$(RM) $(TARGET).*
 	-$(RM) $(SOURCES:.c=.lst)
 	-$(RM) $(DEPEND)
+
+program:
+	mspdebug rf2500 "prog $(TARGET).hex"

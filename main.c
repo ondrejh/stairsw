@@ -41,7 +41,7 @@
 
 
 // include section
-#define MSP430G2452
+//#define MSP430G2452
 #ifndef MSP430G2452
 	#include "msp430g2553.h"
 #else
