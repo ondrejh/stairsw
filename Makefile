@@ -84,3 +84,6 @@ clean:
 
 program:
 	mspdebug rf2500 "prog $(TARGET).hex"
+
+program_win:
+	MSP430Flasher -i TIUSB -m SBW2 -g -n $(MCU) -e ERASE_ALL -w $(TARGET).hex -v -z [VCC]
