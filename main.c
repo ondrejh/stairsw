@@ -57,7 +57,8 @@
 //******************************************************************************
 
 
-// include section
+/// include section
+
 //#define MSP430G2553
 //#define MSP430G2452
 #define MSP430G2201
@@ -74,11 +75,20 @@
 
 #include "stdbool.h"
 
+
+/// feature selections
+
 // use door switch if defined:
 #define DOOR_SWITCH
 
+// use timeout timer if not zero:
+#define AUTO_OFF_TIMEOUT 30000 //2.5min (5ms tick)
+
+
+/// port pin assignment section
 
 #ifndef MSP430G2201
+// 20 pin MCUs
 
 // board (leds, button)
 #define LED_INIT() {P1DIR|=0x41;P1OUT&=~0x41;P2DIR|=0x38;P2OUT&=~0x38;}
@@ -99,6 +109,7 @@
 #endif
 
 #else
+// 14 pin MCUs
 
 // board (leds, button)
 #define LED_INIT() {P1DIR|=0x41;P1OUT&=~0x41;}
@@ -120,12 +131,17 @@
 
 #endif
 
+
+/// other definitions
+
 // time base 5ms (5000 ticks / 1MHz)
 #define Timer_Const 5000
 #define Led_PWM_Levels 5
 #define Btn_Filter 10
 #define Btn_Filter_MAX 100
 
+
+/// local functions section
 
 // timer initialization
 void timer_init(void)
@@ -134,7 +150,6 @@ void timer_init(void)
 	CCR0 = Timer_Const;
 	TACTL = TASSEL_2 + MC_2;	// SMCLK, contmode
 }
-
 
 // hw depended initialization
 void board_init(void)
@@ -159,6 +174,8 @@ void board_init(void)
 }
 
 
+/// main programm section
+
 // main program body
 int main(void)
 {
@@ -173,6 +190,8 @@ int main(void)
 }
 
 
+/// interrupt routines
+
 // Timer A0 interrupt service routine (5ms)
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void Timer_A (void)
@@ -181,17 +200,9 @@ __interrupt void Timer_A (void)
 	static unsigned int sw_seqv = 0; // switch sequential pointer
 	static bool out_st = false; // output state (on/off)
 
-	// button reading
-	if (BTN_DOWN)
-	{
-		if (OnCnt<Btn_Filter_MAX) OnCnt++;
-		OffCnt=0;
-	}
-	else
-	{
-		if (OffCnt<Btn_Filter_MAX) OffCnt++;
-		OnCnt=0;
-	}
+	#if AUTO_OFF_TIMEOUT!=0
+	static unsigned int AutoOffTimer = 0;
+	#endif
 
 	#ifdef DOOR_SWITCH
 	static unsigned int DSOnCnt=0, DSOffCnt=0; // on and off button state counter
@@ -209,6 +220,18 @@ __interrupt void Timer_A (void)
 	}
 	#endif
 
+	// button reading
+	if (BTN_DOWN)
+	{
+		if (OnCnt<Btn_Filter_MAX) OnCnt++;
+		OffCnt=0;
+	}
+	else
+	{
+		if (OffCnt<Btn_Filter_MAX) OffCnt++;
+		OnCnt=0;
+	}
+
 	// button sequential
 	switch (sw_seqv)
 	{
@@ -218,6 +241,9 @@ __interrupt void Timer_A (void)
 			{
 			    OUT_ON();
 			    out_st=true;
+			    #if AUTO_OFF_TIMEOUT!=0
+			    AutoOffTimer=AUTO_OFF_TIMEOUT;
+			    #endif
 			    sw_seqv+=2;
 			}
 			#endif
@@ -225,6 +251,9 @@ __interrupt void Timer_A (void)
 			{
 				OUT_ON();
 				out_st=true;
+			    #if AUTO_OFF_TIMEOUT!=0
+			    AutoOffTimer=AUTO_OFF_TIMEOUT;
+			    #endif
 				sw_seqv++;
 			}
 			break;
@@ -232,6 +261,15 @@ __interrupt void Timer_A (void)
 			if (OffCnt==Btn_Filter) sw_seqv++;
 			break;
 		case 2: // On .. wait button
+            #if AUTO_OFF_TIMEOUT!=0
+            if (AutoOffTimer>0) AutoOffTimer--;
+            else
+            {
+                OUT_OFF();
+                out_st=false;
+                sw_seqv=0;
+            }
+            #endif
             #ifdef DOOR_SWITCH
 			if (DSOnCnt==Btn_Filter)
 			{
@@ -324,7 +362,6 @@ __interrupt void Timer_A (void)
 	CCR0 += Timer_Const;		// Add Offset to CCR0
 }
 
-
 // unused interrupts handler
 #ifdef MSP430G2553
 #pragma vector=	ADC10_VECTOR,\
@@ -347,6 +384,13 @@ __interrupt void Timer_A (void)
 				PORT2_VECTOR,\
 				TIMER0_A1_VECTOR,\
 				WDT_VECTOR
+#endif
+#ifdef MSP430G2201
+#pragma vector= NMI_VECTOR,\
+                PORT1_VECTOR,\
+				PORT2_VECTOR,\
+				TIMER0_A1_VECTOR,\
+                WDT_VECTOR
 #endif
 __interrupt void ISR_trap(void)
 {

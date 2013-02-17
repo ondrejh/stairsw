@@ -7,3 +7,4 @@
 hw/*.b#?
 hw/*.s#?
 *.layout
+*.cbTemp
