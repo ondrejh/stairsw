@@ -49,6 +49,7 @@
 //            |           P1.2,3|--> GREEN LED (active high) | or R/G led two/w
 //            |                 |
 //            |             P1.4|<-- BUTTON WITH PULLUP (active low)
+//            |             P1.5|<-- DOOR SWITCH WITH PULLUP (active low)
 //            |                 |
 //            |           P1.6,7|--> OUT (active low)
 //            |                 |
@@ -73,6 +74,9 @@
 
 #include "stdbool.h"
 
+// use door switch if defined:
+#define DOOR_SWITCH
+
 
 #ifndef MSP430G2201
 
@@ -89,6 +93,11 @@
 #define OUT_ON() {P2OUT&=~0x06;}
 #define OUT_OFF() {P2OUT|=0x06;}
 
+#ifdef DOOR_SWITCH
+#define DSWITCH_INIT() {}
+#define DSWITCH_CLOSED (true)
+#endif
+
 #else
 
 // board (leds, button)
@@ -103,6 +112,11 @@
 #define OUT_INIT() {P1DIR|=0xC0;P1OUT|=0xC0;}
 #define OUT_ON() {P1OUT&=~0xC0;}
 #define OUT_OFF() {P1OUT|=0xC0;}
+
+#ifdef DOOR_SWITCH
+#define DSWITCH_INIT() {P1DIR&=~0x20;P1REN|=0x20;P1OUT|=0x20;}
+#define DSWITCH_CLOSED ((P1IN&0x20)==0)
+#endif
 
 #endif
 
@@ -139,6 +153,9 @@ void board_init(void)
 	LED_INIT(); // leds
 	BTN_INIT(); // button
 	OUT_INIT(); // output
+	#ifdef DOOR_SWITCH
+	DSWITCH_INIT();
+	#endif
 }
 
 
@@ -176,14 +193,36 @@ __interrupt void Timer_A (void)
 		OnCnt=0;
 	}
 
+	#ifdef DOOR_SWITCH
+	static unsigned int DSOnCnt=0, DSOffCnt=0; // on and off button state counter
+
+	// door switch reading
+	if (DSWITCH_CLOSED)
+	{
+		if (DSOnCnt<Btn_Filter_MAX) DSOnCnt++;
+		DSOffCnt=0;
+	}
+	else
+	{
+		if (DSOffCnt<Btn_Filter_MAX) DSOffCnt++;
+		DSOnCnt=0;
+	}
+	#endif
+
 	// button sequential
 	switch (sw_seqv)
 	{
 		case 0: // Off (after reset) .. wait button
+            #ifdef DOOR_SWITCH
+			if (DSOffCnt==Btn_Filter)
+			{
+			    OUT_ON();
+			    out_st=true;
+			    sw_seqv+=2;
+			}
+			#endif
 			if (OnCnt==Btn_Filter)
 			{
-				//LED_RED_ON();
-				//LED_GREEN_OFF();
 				OUT_ON();
 				out_st=true;
 				sw_seqv++;
@@ -193,10 +232,16 @@ __interrupt void Timer_A (void)
 			if (OffCnt==Btn_Filter) sw_seqv++;
 			break;
 		case 2: // On .. wait button
+            #ifdef DOOR_SWITCH
+			if (DSOnCnt==Btn_Filter)
+			{
+			    OUT_OFF();
+			    out_st=false;
+			    sw_seqv=0;
+			}
+			#endif
 			if (OnCnt==Btn_Filter)
 			{
-				//LED_RED_OFF();
-				//LED_GREEN_ON();
 				OUT_OFF();
 				out_st=false;
 				sw_seqv++;
