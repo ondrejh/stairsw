@@ -6,3 +6,4 @@
 *.d
 hw/*.b#?
 hw/*.s#?
+*.layout

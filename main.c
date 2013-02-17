@@ -37,18 +37,44 @@
 // 2012.06.29: output port connected
 //             leds pin and output pin doubled (tripled) to get more current
 //
+// 2013.02.17: 14pin mcu MSP430G2201
+//
+//                MSP4302201
+//             -----------------
+//         /|\|              XIN|-
+//          | |                 |
+//          --|RST          XOUT|-
+//            |                 |
+//            |           P1.0,1|--> RED LED (active high)   |
+//            |           P1.2,3|--> GREEN LED (active high) | or R/G led two/w
+//            |                 |
+//            |             P1.4|<-- BUTTON WITH PULLUP (active low)
+//            |                 |
+//            |           P1.6,7|--> OUT (active low)
+//            |                 |
+//
 //******************************************************************************
 
 
 // include section
+//#define MSP430G2553
 //#define MSP430G2452
-#ifndef MSP430G2452
-	#include "msp430g2553.h"
-#else
+#define MSP430G2201
+
+#ifdef MSP430G2452
 	#include "msp430g2452.h"
 #endif
+#ifdef MSP430G2201
+	#include "msp430g2201.h"
+#endif
+#ifdef MSP430G2553
+	#include "msp430g2553.h"
+#endif
+
 #include "stdbool.h"
 
+
+#ifndef MSP430G2201
 
 // board (leds, button)
 #define LED_INIT() {P1DIR|=0x41;P1OUT&=~0x41;P2DIR|=0x38;P2OUT&=~0x38;}
@@ -57,11 +83,28 @@
 #define LED_GREEN_ON() {P1OUT|=0x40;P2OUT|=0x20;}
 #define LED_GREEN_OFF() {P1OUT&=~0x40;P2OUT&=~0x20;}
 
-#define BTN_INIT() {P1DIR&=~0x08;P1REN|=0x08;}
+#define BTN_INIT() {P1DIR&=~0x08;P1REN|=0x08;P1OUT|=0x08}
 #define BTN_DOWN ((P1IN&0x08)==0)
 #define OUT_INIT() {P2DIR|=0x06;P2OUT|=0x06;}
 #define OUT_ON() {P2OUT&=~0x06;}
 #define OUT_OFF() {P2OUT|=0x06;}
+
+#else
+
+// board (leds, button)
+#define LED_INIT() {P1DIR|=0x41;P1OUT&=~0x41;}
+#define LED_RED_ON() {P1OUT|=0x03;}
+#define LED_RED_OFF() {P1OUT&=~0x03;}
+#define LED_GREEN_ON() {P1OUT|=0x0C;}
+#define LED_GREEN_OFF() {P1OUT&=~0x0C;}
+
+#define BTN_INIT() {P1DIR&=~0x10;P1REN|=0x10;P1OUT|=0x10;}
+#define BTN_DOWN ((P1IN&0x10)==0)
+#define OUT_INIT() {P1DIR|=0xC0;P1OUT|=0xC0;}
+#define OUT_ON() {P1OUT&=~0xC0;}
+#define OUT_OFF() {P1OUT|=0xC0;}
+
+#endif
 
 // time base 5ms (5000 ticks / 1MHz)
 #define Timer_Const 5000
@@ -89,7 +132,7 @@ void board_init(void)
 	// unused pins (all but future init)
 	P1OUT = 0x00; P1DIR = 0xFF;
 	P2OUT = 0x00; P2DIR = 0xFF;
-	#ifndef MSP430G2452
+	#ifdef MSP430G2553
 	P3OUT = 0x00; P3DIR = 0xFF;
 	#endif
 
@@ -238,7 +281,7 @@ __interrupt void Timer_A (void)
 
 
 // unused interrupts handler
-#ifndef MSP430G2452
+#ifdef MSP430G2553
 #pragma vector=	ADC10_VECTOR,\
 				COMPARATORA_VECTOR,\
 				NMI_VECTOR,\
@@ -250,7 +293,8 @@ __interrupt void Timer_A (void)
 				USCIAB0RX_VECTOR,\
 				USCIAB0TX_VECTOR,\
 				WDT_VECTOR
-#else
+#endif
+#ifdef MSP430G2452
 #pragma vector=	ADC10_VECTOR,\
 				COMPARATORA_VECTOR,\
 				NMI_VECTOR,\
